@@ -18,7 +18,12 @@ import sqlite3
 app = FastAPI()
 
 # ✔ FIXED MODEL PATH (must be in root folder)
-model = YOLO("best.pt")
+model = None
+
+@app.on_event("startup")
+def load_model():
+    global model
+    model = YOLO("best.pt")
 
 # ---------------- UPLOAD DIR ---------------- #
 UPLOAD_DIR = "uploads"
