@@ -16,7 +16,7 @@ from datetime import datetime
 # ---------------- APP INIT ---------------- #
 app = FastAPI()
 
-model = YOLO("runs/detect/train/weights/best.pt")
+model = YOLO("best.pt")
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
