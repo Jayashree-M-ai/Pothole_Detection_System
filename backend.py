@@ -180,9 +180,8 @@ def process_video(file_path, lat, lon):
     if fps == 0:
         fps = 20
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = 640
+    height = 360
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
 
@@ -201,6 +200,9 @@ def process_video(file_path, lat, lon):
 
     cooldown = 5
 
+    # Maximum frames protection
+    max_frames = 300
+
     while True:
 
         ret, frame = cap.read()
@@ -210,16 +212,29 @@ def process_video(file_path, lat, lon):
 
         frame_count += 1
 
-        # Process only every 15th frame
-        if frame_count % 15 != 0:
+        # Stop very long videos
+        if frame_count > max_frames:
+            break
 
-            out.write(frame)
+        # Process only every 20th frame
+        if frame_count % 20 != 0:
+
+            resized_frame = cv2.resize(frame, (width, height))
+
+            out.write(resized_frame)
 
             continue
 
-        frame=cv2.resize(frame, (640,360))
-        
-        results = model(frame, conf=0.5, imgsz=320)
+        # Resize frame
+        frame = cv2.resize(frame, (width, height))
+
+        # YOLO prediction
+        results = model(
+            frame,
+            conf=0.5,
+            imgsz=320,
+            verbose=False
+        )
 
         annotated = results[0].plot()
 
@@ -229,6 +244,7 @@ def process_video(file_path, lat, lon):
 
         current_time = time.time()
 
+        # Telegram alert cooldown
         if count > 0 and current_time - last_alert_time > cooldown:
 
             temp_frame = os.path.join(
@@ -255,6 +271,7 @@ def process_video(file_path, lat, lon):
 
     out.release()
 
+    # Send final video report
     if total_potholes > 0:
 
         send_telegram_video(
@@ -262,13 +279,22 @@ def process_video(file_path, lat, lon):
             f"🚧 Full Video Report\nGPS: {lat}, {lon}"
         )
 
-        save_to_db(lat, lon, total_potholes)
+        save_to_db(
+            lat,
+            lon,
+            total_potholes
+        )
 
     return {
         "type": "video",
         "count": total_potholes,
-        "output_file": f"uploads/{out_filename}"
+        "output_file": f"/uploads/{out_filename}"
     }
+
+    
+
+
+
 
 
 # ---------------- API ---------------- #
