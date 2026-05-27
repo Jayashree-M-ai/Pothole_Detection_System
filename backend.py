@@ -210,14 +210,16 @@ def process_video(file_path, lat, lon):
 
         frame_count += 1
 
-        # Process only every 5th frame
-        if frame_count % 5 != 0:
+        # Process only every 15th frame
+        if frame_count % 15 != 0:
 
             out.write(frame)
 
             continue
 
-        results = model(frame, conf=0.5)
+        frame=cv2.resize(frame, (640,360))
+        
+        results = model(frame, conf=0.5, imgsz=320)
 
         annotated = results[0].plot()
 
