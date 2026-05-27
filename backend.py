@@ -162,7 +162,6 @@ GPS:
     }
 
 # ---------------- VIDEO PROCESSING ---------------- #
-
 def process_video(file_path, lat, lon):
 
     cap = cv2.VideoCapture(file_path)
@@ -176,7 +175,10 @@ def process_video(file_path, lat, lon):
         out_filename
     )
 
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    if fps == 0:
+        fps = 20
 
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
@@ -191,11 +193,13 @@ def process_video(file_path, lat, lon):
         (width, height)
     )
 
+    frame_count = 0
+
+    total_potholes = 0
+
     last_alert_time = 0
 
     cooldown = 5
-
-    total_potholes = 0
 
     while True:
 
@@ -203,6 +207,15 @@ def process_video(file_path, lat, lon):
 
         if not ret:
             break
+
+        frame_count += 1
+
+        # Process only every 5th frame
+        if frame_count % 5 != 0:
+
+            out.write(frame)
+
+            continue
 
         results = model(frame, conf=0.5)
 
@@ -214,7 +227,6 @@ def process_video(file_path, lat, lon):
 
         current_time = time.time()
 
-        # Telegram cooldown
         if count > 0 and current_time - last_alert_time > cooldown:
 
             temp_frame = os.path.join(
@@ -224,16 +236,12 @@ def process_video(file_path, lat, lon):
 
             cv2.imwrite(temp_frame, annotated)
 
-            msg = f"""
-🚧 Pothole Detected in Video
-
-Count: {count}
-
-Time: {datetime.now()}
-
-GPS:
-{lat}, {lon}
-"""
+            msg = (
+                f"🚧 Pothole Detected in Video\n\n"
+                f"Count: {count}\n\n"
+                f"Time: {datetime.now()}\n\n"
+                f"GPS: {lat}, {lon}"
+            )
 
             send_telegram_photo(temp_frame, msg)
 
@@ -259,6 +267,7 @@ GPS:
         "count": total_potholes,
         "output_file": f"uploads/{out_filename}"
     }
+
 
 # ---------------- API ---------------- #
 
