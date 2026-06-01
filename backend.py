@@ -79,6 +79,7 @@ def send_telegram_video(video_path, caption):
                 "video": vid
             }
         )
+        print(response.text)
 
 # ---------------- DATABASE ---------------- #
 
@@ -162,7 +163,9 @@ GPS:
     }
 
 # ---------------- VIDEO PROCESSING ---------------- #
-def process_video(file_path, lat, lon):
+
+
+   def process_video(file_path, lat, lon):
 
     cap = cv2.VideoCapture(file_path)
 
@@ -177,7 +180,7 @@ def process_video(file_path, lat, lon):
 
     fps = cap.get(cv2.CAP_PROP_FPS)
 
-    if fps == 0:
+    if fps <= 0:
         fps = 20
 
     width = 640
@@ -196,11 +199,6 @@ def process_video(file_path, lat, lon):
 
     total_potholes = 0
 
-    last_alert_time = 0
-
-    cooldown = 5
-
-    # Maximum frames protection
     max_frames = 300
 
     while True:
@@ -212,72 +210,52 @@ def process_video(file_path, lat, lon):
 
         frame_count += 1
 
-        # Stop very long videos
         if frame_count > max_frames:
             break
 
-        # Process only every 20th frame
-        if frame_count % 20 != 0:
-
-            resized_frame = cv2.resize(frame, (width, height))
-
-            out.write(resized_frame)
-
-            continue
-
-        # Resize frame
-        frame = cv2.resize(frame, (width, height))
-
-        # YOLO prediction
-        results = model(
+        frame = cv2.resize(
             frame,
-            conf=0.5,
-            imgsz=320,
-            verbose=False
+            (width, height)
         )
 
-        annotated = results[0].plot()
+        # Process only every 20th frame
+        if frame_count % 20 == 0:
 
-        count = len(results[0].boxes)
-
-        total_potholes += count
-
-        current_time = time.time()
-
-        # Telegram alert cooldown
-        if count > 0 and current_time - last_alert_time > cooldown:
-
-            temp_frame = os.path.join(
-                UPLOAD_DIR,
-                "temp_frame.jpg"
+            results = model(
+                frame,
+                conf=0.5,
+                imgsz=320,
+                verbose=False
             )
 
-            cv2.imwrite(temp_frame, annotated)
+            annotated = results[0].plot()
 
-            msg = (
-                f"🚧 Pothole Detected in Video\n\n"
-                f"Count: {count}\n\n"
-                f"Time: {datetime.now()}\n\n"
-                f"GPS: {lat}, {lon}"
-            )
+            count = len(results[0].boxes)
 
-            send_telegram_photo(temp_frame, msg)
+            total_potholes += count
 
-            last_alert_time = current_time
+            out.write(annotated)
 
-        out.write(annotated)
+        else:
+
+            out.write(frame)
 
     cap.release()
 
     out.release()
 
-    # Send final video report
     if total_potholes > 0:
 
-        send_telegram_video(
-            out_path,
-            f"🚧 Full Video Report\nGPS: {lat}, {lon}"
-        )
+        try:
+
+            send_telegram_video(
+                out_path,
+                f"🚧 Full Video Report\nGPS: {lat}, {lon}"
+            )
+
+        except Exception as e:
+
+            print("Telegram video error:", e)
 
         save_to_db(
             lat,
@@ -290,7 +268,6 @@ def process_video(file_path, lat, lon):
         "count": total_potholes,
         "output_file": f"/uploads/{out_filename}"
     }
-
     
 
 
@@ -300,7 +277,6 @@ def process_video(file_path, lat, lon):
 # ---------------- API ---------------- #
 
 @app.post("/detect")
-
 async def detect(
     file: UploadFile = File(...),
     lat: float = Form(0.0),
@@ -314,9 +290,24 @@ async def detect(
         filename
     )
 
+    contents = await file.read()
+
+    # Maximum video size = 10 MB
+    MAX_VIDEO_SIZE = 10 * 1024 * 1024
+
+    if filename.lower().endswith(
+        (".mp4", ".avi", ".mov")
+    ):
+
+        if len(contents) > MAX_VIDEO_SIZE:
+
+            return {
+                "error": "Video size exceeds 10 MB limit"
+            }
+
     with open(file_path, "wb") as buffer:
 
-        buffer.write(await file.read())
+        buffer.write(contents)
 
     # IMAGE
     if filename.lower().endswith(
@@ -343,7 +334,6 @@ async def detect(
     return {
         "error": "Unsupported file format"
     }
-
 # ---------------- ROOT ---------------- #
 
 @app.get("/")
