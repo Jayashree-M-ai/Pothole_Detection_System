@@ -222,7 +222,7 @@ def process_video(file_path, lat, lon):
         )
 
         # Process only every 15th frame
-        if frame_count % 15 == 0:
+        if frame_count % 15 != 0:
             if last_annotated is not None:
                 out.write(last_annotated)
             else:
