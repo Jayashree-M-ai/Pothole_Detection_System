@@ -221,8 +221,8 @@ def process_video(file_path, lat, lon):
             (width, height)
         )
 
-        # Process only every 20th frame
-        if frame_count % 30 == 0:
+        # Process only every 15th frame
+        if frame_count % 15 == 0:
 
             results = model(
                 frame,
