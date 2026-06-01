@@ -65,21 +65,26 @@ def send_telegram_photo(image_path, caption):
 
 def send_telegram_video(video_path, caption):
 
-    url = f"https://api.telegram.org/bot8359382623:AAFVbpzu4MI63nvNa37ddRs8HkvI3DcvCVk/sendVideo"
-
-    with open(video_path, "rb") as vid:
-
-        requests.post(
-            url,
-            data={
-                "chat_id": CHAT_ID,
-                "caption": caption
-            },
-            files={
-                "video": vid
-            }
-        )
+    try:
+        url = f"https://api.telegram.org/bot8359382623:AAFVbpzu4MI63nvNa37ddRs8HkvI3DcvCVk/sendVideo"
     
+        with open(video_path, "rb") as vid:
+
+            response=requests.post(
+                url,
+                data={
+                    "chat_id": CHAT_ID,
+                    "caption": caption
+                },
+                files={
+                    "video": vid
+                },
+                timeout=120
+            )
+        print(response.text)
+    except Exception as e:
+        print("Telegram Video Error",e)
+
 
 # ---------------- DATABASE ---------------- #
 
