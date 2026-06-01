@@ -203,7 +203,7 @@ def process_video(file_path, lat, lon):
     total_potholes = 0
 
     max_frames = 150
-
+    last_annotated = None
     while True:
 
         ret, frame = cap.read()
@@ -223,6 +223,11 @@ def process_video(file_path, lat, lon):
 
         # Process only every 15th frame
         if frame_count % 15 == 0:
+            if last_annotated is not None:
+                out.write(last_annotated)
+            else:
+                out.write(frame)
+            continue
 
             results = model(
                 frame,
@@ -232,10 +237,12 @@ def process_video(file_path, lat, lon):
             )
 
             annotated = results[0].plot()
-
+                        
             count = len(results[0].boxes)
 
             total_potholes += count
+
+            last_annotated = annotated.copy()
 
             out.write(annotated)
 
