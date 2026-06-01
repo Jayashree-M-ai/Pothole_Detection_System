@@ -146,8 +146,6 @@ def process_image(file_path, lat, lon):
 
 Count: {pothole_count}
 
-Time: {datetime.now()}
-
 GPS:
 {lat}, {lon}
 """
@@ -199,7 +197,7 @@ def process_video(file_path, lat, lon):
 
     total_potholes = 0
 
-    max_frames = 300
+    max_frames = 150
 
     while True:
 
@@ -219,7 +217,7 @@ def process_video(file_path, lat, lon):
         )
 
         # Process only every 20th frame
-        if frame_count % 20 == 0:
+        if frame_count % 30 == 0:
 
             results = model(
                 frame,
