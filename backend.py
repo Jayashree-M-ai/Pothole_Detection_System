@@ -79,7 +79,7 @@ def send_telegram_video(video_path, caption):
                 "video": vid
             }
         )
-        print(response.text)
+    
 
 # ---------------- DATABASE ---------------- #
 
@@ -165,7 +165,7 @@ GPS:
 # ---------------- VIDEO PROCESSING ---------------- #
 
 
-   def process_video(file_path, lat, lon):
+def process_video(file_path, lat, lon):
 
     cap = cv2.VideoCapture(file_path)
 
