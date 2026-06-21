@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Pothole Detection</title>
+
+</head>
+
+<body>
+
+    <h2>Pothole Detection using YOLO</h2>
+
+    <br>
+
+    <input type="file" id="file">
+
+    <br><br>
+
+    <button onclick="uploadFile()">
+
+        Detect
+
+    </button>
+
+    <br><br>
+
+    <h3 id="status"></h3>
+
+    <h3 id="count"></h3>
+    
+    <h3 id="GPS"></h3>
+
+    <img
+
+        id="outputImage"
+
+        width="500"
+
+        style="display:none;"
+
+    >
+
+    <br><br>
+
+    <video
+
+        id="outputVideo"
+
+        width="500"
+
+        controls
+
+        style="display:none;"
+
+    >
+
+    </video>
+
+
+<script>
+
+async function uploadFile() {
+
+    const file =
+
+        document.getElementById(
+
+            "file"
+
+        ).files[0];
+
+
+    if(!file){
+
+        alert(
+
+            "Please choose a file"
+
+        );
+
+        return;
+
+    }
+
+
+    document.getElementById(
+
+        "status"
+
+    ).innerHTML =
+
+    "Getting GPS location...";
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        async function(position){
+
+            const lat =
+
+                position.coords.latitude;
+
+            const lon =
+
+                position.coords.longitude;
+
+
+            document.getElementById(
+
+                "status"
+
+            ).innerHTML =
+
+            "Uploading...";
+
+            document.getElementById(
+                    "GPS").innerHTML ="Latitude : "+ lat.toFixed(6)+
+
+                    "<br>Longitude : "
+
+                    + lon.toFixed(6);
+
+
+
+
+            let formData =
+
+                new FormData();
+
+            formData.append(
+
+                "file",
+
+                file
+
+            );
+
+            formData.append(
+
+                "lat",
+
+                lat
+
+            );
+
+            formData.append(
+
+                "lon",
+
+                lon
+
+            );
+
+
+            const response = await fetch(
+
+                "http://127.0.0.1:8000/detect",
+
+                {
+
+                    method:"POST",
+
+                    body:formData
+
+                }
+
+            );
+
+
+            const data =
+
+                await response.json();
+
+            console.log(data);
+
+
+            document.getElementById(
+
+                "status"
+
+            ).innerHTML =
+
+            "Done";
+
+
+            document.getElementById(
+
+                "count"
+
+            ).innerHTML =
+
+            "Potholes Detected : "
+
+            + data.count;
+
+
+            // IMAGE
+
+            if(
+
+                file.type.startsWith(
+
+                    "image"
+
+                )
+
+            ){
+
+                document.getElementById(
+
+                    "outputVideo"
+
+                ).style.display="none";
+
+
+                const img =
+
+                document.getElementById(
+
+                    "outputImage"
+
+                );
+
+                img.style.display=
+
+                "block";
+
+
+                img.src=
+
+                "http://127.0.0.1:8000"
+
+                +
+
+                data.output_file
+
+                +
+
+                "?t="
+
+                +
+
+                new Date().getTime();
+
+            }
+
+
+            // VIDEO
+
+            else{
+
+                document.getElementById(
+
+                    "outputImage"
+
+                ).style.display="none";
+
+
+                const video =
+
+                document.getElementById(
+
+                    "outputVideo"
+
+                );
+
+                video.style.display=
+
+                "block";
+
+
+                video.src=
+
+                "http://127.0.0.1:8000"
+
+                +
+
+                data.output_file
+
+                +
+
+                "?t="
+
+                +
+
+                new Date().getTime();
+
+
+                video.load();
+
+            }
+
+        },
+
+        function(error){
+
+            alert(
+
+                "Please allow GPS access"
+
+            );
+
+            console.log(error);
+
+        }
+
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
